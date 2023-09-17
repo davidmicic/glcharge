@@ -1,10 +1,10 @@
 package algorithm
 
 import (
+	"fmt"
 	c "glcharge/container"
 	"glcharge/models"
 	"math"
-	"sort"
 )
 
 /*
@@ -15,9 +15,37 @@ import (
 -	Otherwise, the current must be distributed based on the priority field of the charge point.
 */
 
-/* 	VPRAŠANJA
+/*
+	VPRAŠANJA
+
 Kaj predstavlja prioriteta pri distribuciji toka na polnilni postaji?
 */
+func transform(inputMap map[int][]models.ChargePointStatus) int {
+	outputMap := make(map[int][]models.ChargePointStatus)
+	emptyKeys := make([]int, 0)
+	sum := 0
+	// Iterate over the inputMap
+	for key := 1; key <= len(inputMap); key++ {
+		value := inputMap[key]
+		if len(value) == 0 {
+			emptyKeys = append(emptyKeys, key)
+		} else {
+			if len(emptyKeys) != 0 {
+				emptyKey := emptyKeys[0]
+				emptyKeys = emptyKeys[1:]
+				outputMap[emptyKey] = value
+				emptyKeys = append(emptyKeys, key)
+			} else {
+				outputMap[key] = value
+			}
+		}
+	}
+
+	for key := 1; key <= len(outputMap); key++ {
+		sum += len(outputMap[key]) * key
+	}
+	return sum
+}
 
 func Algorithm() map[int]float64 {
 	container := c.GetContainer()
@@ -65,21 +93,32 @@ func Algorithm() map[int]float64 {
 	resultMap := make(map[int]float64)
 	for _, group := range groups {
 		maxCurrent := group.MaxCurrent
-		chargePoints := groupChargePointsMap[group.Id]
-		// fmt.Println("GROUP ID: ", group.Id, "chargePoints: ", chargePoints)
-		numOfChargePoints := len(chargePoints)
-		sumOfPriorities := (numOfChargePoints * (numOfChargePoints + 1)) / 2
-		fraction := float64(100) / float64(sumOfPriorities)
-
-		if numOfChargePoints > 1 {
-			sort.Slice(chargePoints, func(i, j int) bool {
-				return chargePoints[i].Priority < chargePoints[j].Priority
-			})
+		chargePointsGroup := groupChargePointsMap[group.Id]
+		priorityChargePointsMap := make(map[int][]models.ChargePointStatus, 0)
+		for _, chargePoint := range chargePointsGroup {
+			if priorityChargePointsMap[chargePoint.Priority] != nil {
+				priorityChargePointsMap[chargePoint.Priority] =
+					append(priorityChargePointsMap[chargePoint.Priority], chargePoint)
+			} else {
+				priorityChargePointsMap[chargePoint.Priority] =
+					append(make([]models.ChargePointStatus, 0), chargePoint)
+			}
 		}
 
+		// numOfChargePoints := len(chargePoints)
+		sumOfPriorities := transform(priorityChargePointsMap)
+		fraction := float64(100) / float64(sumOfPriorities)
+
+		fmt.Println("group: ", group.Id, " fraction: ", fraction, " sumOfPriroities: ", sumOfPriorities)
+		// if numOfChargePoints > 1 {
+		// 	sort.Slice(chargePoints, func(i, j int) bool {
+		// 		return chargePoints[i].Priority < chargePoints[j].Priority
+		// 	})
+		// }
+
 		// The output must be a list of maps with ChargePointId and Current fields. The order does not matter
-		for idx, chargePoint := range chargePoints {
-			percentageOfMaxCurrentForChargePoint := math.Round(float64(idx+1)*fraction) / 100
+		for _, chargePoint := range chargePointsGroup {
+			percentageOfMaxCurrentForChargePoint := math.Round(float64(chargePoint.Priority)*fraction) / 100
 			calculatedMaxCurrentForChargePoint := maxCurrent * percentageOfMaxCurrentForChargePoint
 			resultMap[chargePoint.ChargePointId] = calculatedMaxCurrentForChargePoint
 		}
@@ -87,3 +126,13 @@ func Algorithm() map[int]float64 {
 
 	return resultMap
 }
+
+/*
+
+1	->	[1]
+2	->	[2]				1	->	[1]
+3	->	[]		-->		2	->	[2]
+4	->	[2]				3	->	[2]
+5	->	[]
+
+*/
