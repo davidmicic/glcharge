@@ -3,7 +3,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"glcharge/models"
+	"glcharge/go/src/models"
 	"log"
 )
 
@@ -23,7 +23,7 @@ type DalDB struct {
 
 // ChangeChargePointPriorityById implements IDal.
 func (d *DalDB) ChangeChargePointPriorityById(id int, priority int) {
-	fmt.Print("Called ChangeChargePointPriorityById")
+	fmt.Println("Called ChangeChargePointPriorityById")
 	stmt, err := d.Db.Prepare(`UPDATE public.chargepointstatus SET "Priority" = $1 WHERE ChargePointId = $2`)
 	if err != nil {
 		log.Fatal(err)
@@ -39,7 +39,7 @@ func (d *DalDB) ChangeChargePointPriorityById(id int, priority int) {
 
 // ChangeConnectorStatusById implements IDal.
 func (d *DalDB) ChangeConnectorStatusById(id int, status string) {
-	fmt.Print("Called ChangeConnectorStatusById")
+	fmt.Println("Called ChangeConnectorStatusById")
 	stmt, err := d.Db.Prepare(`UPDATE public.chargePointConnector SET "Status" = $1 WHERE chargepointconnectorid = $2`)
 	if err != nil {
 		log.Fatal(err)
@@ -55,7 +55,7 @@ func (d *DalDB) ChangeConnectorStatusById(id int, status string) {
 
 // ChangeGroupMaxCurrentById implements IDal.
 func (d *DalDB) ChangeGroupMaxCurrentById(id int, maxCurrent float64) {
-	fmt.Print("Called ChangeGroupMaxCurrentById")
+	fmt.Println("Called ChangeGroupMaxCurrentById")
 	stmt, err := d.Db.Prepare(`UPDATE public.group SET MaxCurrent = $1 WHERE Id = $2`)
 	if err != nil {
 		log.Fatal(err)
@@ -81,7 +81,7 @@ func (d *DalDB) InitDB(conn_str string) {
 }
 
 func (d *DalDB) GetGroups() ([]models.Group, error) {
-	fmt.Print("Called GetGroups")
+	fmt.Println("Called GetGroups")
 	rows, err := d.Db.Query("select * from public.group")
 	var groups []models.Group
 
@@ -102,7 +102,7 @@ func (d *DalDB) GetGroups() ([]models.Group, error) {
 }
 
 func (d *DalDB) GetChargePointStatus() ([]models.ChargePointStatus, error) {
-	fmt.Print("Called GetChargePointStatus")
+	fmt.Println("Called GetChargePointStatus")
 	rows, err := d.Db.Query("select * from public.chargepointstatus")
 	var chargePoints []models.ChargePointStatus
 
@@ -123,7 +123,7 @@ func (d *DalDB) GetChargePointStatus() ([]models.ChargePointStatus, error) {
 }
 
 func (d *DalDB) GetChargePointConnector() ([]models.ChargePointConnector, error) {
-	fmt.Print("Called GetChargePointConnector")
+	fmt.Println("Called GetChargePointConnector")
 	rows, err := d.Db.Query("select * from public.chargepointconnector")
 	var chargePointConnector []models.ChargePointConnector
 

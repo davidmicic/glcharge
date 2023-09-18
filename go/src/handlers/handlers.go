@@ -9,8 +9,8 @@ the group.
 import (
 	"encoding/json"
 	"fmt"
-	"glcharge/algorithm"
-	c "glcharge/container"
+	"glcharge/go/src/algorithm"
+	c "glcharge/go/src/container"
 	"net/http"
 	"strconv"
 )

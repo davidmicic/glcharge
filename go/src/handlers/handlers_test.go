@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	c "glcharge/container"
-	"glcharge/models"
+	c "glcharge/go/src/container"
+	"glcharge/go/src/models"
 	"net/http/httptest"
 	"testing"
 
@@ -35,17 +35,17 @@ func (*DalMock) ChangeGroupMaxCurrentById(id int, maxCurrent float64) {
 
 // GetChargePointConnector implements IDal.
 func (*DalMock) GetChargePointConnector() ([]models.ChargePointConnector, error) {
-	panic("unimplemented")
+	return nil, nil
 }
 
 // GetChargePointStatus implements IDal.
 func (*DalMock) GetChargePointStatus() ([]models.ChargePointStatus, error) {
-	panic("unimplemented")
+	return nil, nil
 }
 
 // GetGroups implements IDal.
 func (*DalMock) GetGroups() ([]models.Group, error) {
-	panic("unimplemented")
+	return nil, nil
 }
 
 // InitDB implements IDal.
@@ -56,7 +56,7 @@ func (*DalMock) InitDB(conn_str string) {
 func TestChangeChargePointPriority(t *testing.T) {
 
 	var chargePointStatus = models.ChargePointStatus{
-		ChargePointId: "1",
+		ChargePointId: 1,
 		Priority:      1,
 		GroupId:       1,
 	}
@@ -74,7 +74,7 @@ func TestChangeChargePointPriority(t *testing.T) {
 	Makehttphandlers().ServeHTTP(rr, req)
 	assert.Equal(t,
 		models.ChargePointStatus{
-			ChargePointId: "1",
+			ChargePointId: 1,
 			Priority:      5,
 			GroupId:       1,
 		}, chargePointStatus)
@@ -83,7 +83,7 @@ func TestChangeChargePointPriority(t *testing.T) {
 func TestChangeChargePointPriorityBadValueChargePointId(t *testing.T) {
 
 	var chargePointStatus = models.ChargePointStatus{
-		ChargePointId: "1",
+		ChargePointId: 1,
 		Priority:      1,
 		GroupId:       1,
 	}
@@ -107,7 +107,7 @@ func TestChangeChargePointPriorityBadValueChargePointId(t *testing.T) {
 func TestChangeChargePointPriorityBadValuePriority(t *testing.T) {
 
 	var chargePointStatus = models.ChargePointStatus{
-		ChargePointId: "1",
+		ChargePointId: 1,
 		Priority:      1,
 		GroupId:       1,
 	}
@@ -225,7 +225,7 @@ func TestChangeConnectorStatusBadValueStatusWrong(t *testing.T) {
 
 func TestChangeMaxCurrentGroup(t *testing.T) {
 	var groupMaxCurrent = models.Group{
-		Id:         "1",
+		Id:         1,
 		MaxCurrent: 300.0,
 	}
 
@@ -242,14 +242,14 @@ func TestChangeMaxCurrentGroup(t *testing.T) {
 	Makehttphandlers().ServeHTTP(rr, req)
 	assert.Equal(t,
 		models.Group{
-			Id:         "1",
+			Id:         1,
 			MaxCurrent: 500.0,
 		}, groupMaxCurrent)
 }
 
 func TestChangeMaxCurrentGroupBadValueGroupId(t *testing.T) {
 	var groupMaxCurrent = models.Group{
-		Id:         "1",
+		Id:         1,
 		MaxCurrent: 300.0,
 	}
 
@@ -271,7 +271,7 @@ func TestChangeMaxCurrentGroupBadValueGroupId(t *testing.T) {
 
 func TestChangeMaxCurrentGroupBadValueMaxCurrent(t *testing.T) {
 	var groupMaxCurrent = models.Group{
-		Id:         "1",
+		Id:         1,
 		MaxCurrent: 300.0,
 	}
 

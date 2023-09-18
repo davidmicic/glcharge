@@ -2,7 +2,7 @@ package container
 
 import (
 	"fmt"
-	"glcharge/storage"
+	"glcharge/go/src/storage"
 )
 
 type container struct {

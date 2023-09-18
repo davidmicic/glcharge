@@ -6,7 +6,8 @@ import (
 	"sort"
 )
 
-func transform(inputMap map[int][]models.ChargePointStatus) {
+func transform(inputMap map[int][]models.ChargePointStatus, maxCurrent float64) map[int]float64 {
+	outputMap := make(map[int]float64, 0)
 	// Create a slice to store the keys
 	keys := make([]int, 0, len(inputMap))
 	// Iterate over the map and extract the keys
@@ -24,17 +25,32 @@ func transform(inputMap map[int][]models.ChargePointStatus) {
 		sumOfPriorities += i * numberOfChargePointsWithPriority
 	}
 
-	fmt.Println(sumOfPriorities)
+	minimalValuePercent := (float64(100) / float64(sumOfPriorities)) / 100
+
+	for i := 0; i < len(keys); i++ {
+		key := keys[i]
+		chargePointsWithPriority := inputMap[key]
+		// fmt.Println("chargePointsWithPriority: ", chargePointsWithPriority)
+
+		for j := 0; j < len(chargePointsWithPriority); j++ {
+			chargePoint := chargePointsWithPriority[j]
+			maxCurrentForChargePoint := maxCurrent * (minimalValuePercent * float64(i+1))
+			outputMap[chargePoint.ChargePointId] = maxCurrentForChargePoint
+		}
+	}
+
+	return outputMap
 }
 
 func main() {
 	inputMap := map[int][]models.ChargePointStatus{
-		3: {{}, {}, {}, {}},
-		4: {{}, {}, {}},
-		5: {{}, {}},
+		3: {{1, 3, 1}, {2, 3, 1}, {3, 3, 1}, {4, 3, 1}},
+		4: {{5, 4, 1}, {6, 4, 1}, {7, 4, 1}},
+		5: {{8, 5, 1}, {9, 5, 1}},
 	}
 
-	transform(inputMap)
+	fmt.Println(transform(inputMap, 100.0))
+
 	/*
 		Group ima MaxCurrent 100 in 3 polnilnice:
 			polnilnica A  - prioriteta 1,
@@ -65,8 +81,9 @@ func main() {
 		za vsako od prioritet dobim število polnilnih postaj s to prioriteto
 		najdem index(+1) prioritete v seznamu unikatnih prioritet
 		število polnilnih postaj množim z indeksom
-		100% delimo z vsoto indexov(+1) prioritet * število postaj s to prioriteto -> sum of priroity units
-		sumOfPriorityUnits potem množimo z indexom(+1) prioritete
+		vsoto indexov(+1) prioritet * število postaj s to prioriteto -> sum of priroity units
+		100% delimo z sumOfPriorityUnits -> minimalValuePercent
+		minimalValuePercent potem množimo z indexom(+1) prioritete
 
 		primer:
 		polnilne postaje: A (1), B(3), C(1)

@@ -2,22 +2,14 @@ package main
 
 import (
 	"fmt"
-	c "glcharge/container"
-	"glcharge/handlers"
-	"glcharge/storage"
+	c "glcharge/go/src/container"
+	"glcharge/go/src/handlers"
+	"glcharge/go/src/storage"
 	"log"
 	"net/http"
 
 	_ "github.com/lib/pq"
 )
-
-// type server struct{}
-
-// func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Write([]byte(`{"message": "hello world"}`))
-// }
 
 func main() {
 	// postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASS}@${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT}/${process.env.POSTGRES_DB}`;
