@@ -15,6 +15,9 @@ type IDal interface {
 	ChangeGroupMaxCurrentById(id int, maxCurrent float64)
 	ChangeConnectorStatusById(id int, status string)
 	ChangeChargePointPriorityById(id int, priority int)
+	AddGroup(maxCurrent float64)
+	AddChargePoint(priority int, groupId int)
+	AddChargePointConnector(status string, chargePointId int)
 }
 
 type DalDB struct {
@@ -141,4 +144,49 @@ func (d *DalDB) GetChargePointConnector() ([]models.ChargePointConnector, error)
 	}
 
 	return chargePointConnector, nil
+}
+
+func (d *DalDB) AddGroup(maxCurrent float64) {
+	fmt.Println("Called AddGroup")
+	stmt, err := d.Db.Prepare("INSERT INTO public.group (MaxCurrent) VALUES ($1)")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = stmt.Exec(maxCurrent)
+	if err != nil {
+		log.Fatal(err)
+		panic(err)
+	}
+}
+
+func (d *DalDB) AddChargePoint(priority int, groupId int) {
+	fmt.Println("Called AddChargePoint")
+	stmt, err := d.Db.Prepare(`INSERT INTO public.chargepointstatus ("Priority", GroupId) VALUES ($1, $2)`)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = stmt.Exec(priority, groupId)
+	if err != nil {
+		log.Fatal(err)
+		panic(err)
+	}
+}
+
+func (d *DalDB) AddChargePointConnector(status string, chargePointId int) {
+	fmt.Println("Called AddChargePoint")
+	stmt, err := d.Db.Prepare(`INSERT INTO public.chargepointconnector ("Status", ChargePointId) VALUES ($1, $2)`)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = stmt.Exec(status, chargePointId)
+	if err != nil {
+		log.Fatal(err)
+		panic(err)
+	}
 }

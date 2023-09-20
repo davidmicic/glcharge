@@ -1,175 +1,178 @@
 package handlers
 
-/*
-The user must be able to change each charge point's
-priority, each connector's status or MaxCurrent for
-the group.
-*/
-
 import (
-	"encoding/json"
 	"fmt"
 	"glcharge/go/src/algorithm"
-	c "glcharge/go/src/container"
+	"glcharge/go/src/container"
 	"net/http"
 	"strconv"
+
+	_ "glcharge/go/src/docs"
+
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func Makehttphandlers() http.Handler {
-	serveMux := http.NewServeMux()
-	serveMux.HandleFunc("/changeChargePointPriority", changeChargePointPriority)
-	serveMux.HandleFunc("/changeConnectorStatus", changeConnectorStatus)
-	serveMux.HandleFunc("/changeMaxCurrentGroup", changeMaxCurrentGroup)
-	return serveMux
+func Makehttphandlers() *gin.Engine {
+	r := gin.Default()
+	r.PUT("/changeChargePointPriority/:chargePointId/:priority", changeChargePointPriority)
+	r.PUT("/changeConnectorStatus/:connectorId/:status", changeConnectorStatus)
+	r.PUT("/changeMaxCurrentGroup/:groupId/:maxCurrent", changeMaxCurrentGroup)
+	r.POST("/addGroup", addGroup)
+	r.POST("/addChargePoint", addChargePoint)
+	r.POST("/addChargePointConnector", addChargePointConnector)
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.NoRoute(func(c *gin.Context) {
+		c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
+	})
+
+	return r
 }
 
-func changeChargePointPriority(w http.ResponseWriter, r *http.Request) {
-	chargePointId, err := strconv.Atoi(r.URL.Query().Get("chargePointId"))
+// @Param priority   path int true "priority"
+// @Param chargePointId path int true "chargePointId"
+// @Failure 500 {object} string "ChargePointId is not a number"
+// @Failure 500 {object} string "Priority is not a number"
+// @Success 204 {string} string "No Content"
+// @Router /changeChargePointPriority/:chargePointId/:priority [put]
+func changeChargePointPriority(c *gin.Context) {
+	fmt.Println("called: changeChargePointPriority")
+
+	chargePointId, err := strconv.Atoi(c.Param("chargePointId"))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "ChargePointId is not a number")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "ChargePointId is not a number",
+		})
+		return
+	}
+	priority, err := strconv.Atoi(c.Param("priority"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Priority is not a number",
+		})
 		return
 	}
 
-	priority, err := strconv.Atoi(r.URL.Query().Get("priority"))
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Priority is not a number")
+	cnt := container.GetContainer()
+	storage := cnt.Storage()
+
+	chargePoints, _ := storage.GetChargePointStatus()
+	numberOfChargePoints := len(chargePoints)
+
+	if priority > numberOfChargePoints || priority < 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": fmt.Sprintf("Priority should be between 0 and %d", numberOfChargePoints),
+		})
 		return
 	}
-
-	container := c.GetContainer()
-	storage := container.Storage()
 
 	storage.ChangeChargePointPriorityById(chargePointId, priority)
 	resultMap := algorithm.Algorithm()
-
-	w.Header().Set("Content-Type", "application/json")
-	jsonData, err := json.Marshal(resultMap)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Write the JSON response
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonData)
+	c.JSON(http.StatusOK, resultMap)
 }
 
-func changeConnectorStatus(w http.ResponseWriter, r *http.Request) {
-	connectorId, err := strconv.Atoi(r.URL.Query().Get("connectorId"))
+// @Param status   path int true "status"
+// @Param connectorId path int true "connectorId"
+// @Failure 500 {object} string "ConnectorId is not a number"
+// @Failure 500 {object} string "Missing status value"
+// @Success 204 {string} string "Wrong status value"
+// @Router /changeConnectorStatus/:connectorId/:status [put]
+func changeConnectorStatus(c *gin.Context) {
+	connectorId, err := strconv.Atoi(c.Param("connectorId"))
+	status := c.Param("status")
+
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "ConnectorId is not a number")
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "ConnectorId is not a number"})
 		return
 	}
-
-	status := r.URL.Query().Get("status")
 	if status == "" {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Missing status value")
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Missing status value"})
 		return
 	}
-
 	if status != "Available" && status != "Charging" {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Wrong status value")
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Wrong status value"})
 		return
 	}
 
-	container := c.GetContainer()
-	storage := container.Storage()
-
+	cnt := container.GetContainer()
+	storage := cnt.Storage()
 	storage.ChangeConnectorStatusById(connectorId, status)
 }
 
-func changeMaxCurrentGroup(w http.ResponseWriter, r *http.Request) {
-	groupId, err := strconv.Atoi(r.URL.Query().Get("groupId"))
+// @Param maxCurrent   path int true "maxCurrent"
+// @Param groupId path int true "groupId"
+// @Failure 500 {object} string "GroupId is not a number"
+// @Failure 500 {object} string "MaxCurrent is not a number"
+// @Failure 500 {object} string "MaxCurrent must be greater or equal to 0"
+// @Success 204 {string} string "No Content"
+// @Router /changeMaxCurrentGroup/:groupId/:maxCurrent [put]
+func changeMaxCurrentGroup(c *gin.Context) {
+	groupId, err := strconv.Atoi(c.Param("groupId"))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "GroupId is not a number")
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "GroupId is not a number"})
 		return
 	}
 
-	MaxCurrent, err := strconv.ParseFloat(r.URL.Query().Get("MaxCurrent"), 64)
+	maxCurrent, err := strconv.ParseFloat(c.Param("maxCurrent"), 64)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "MaxCurrent is not a number")
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "MaxCurrent is not a number"})
+		return
+	} else if maxCurrent < 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "MaxCurrent must be greater or equal to 0"})
 		return
 	}
 
-	container := c.GetContainer()
-	storage := container.Storage()
-
-	storage.ChangeGroupMaxCurrentById(groupId, MaxCurrent)
+	cnt := container.GetContainer()
+	storage := cnt.Storage()
+	storage.ChangeGroupMaxCurrentById(groupId, maxCurrent)
 }
 
-// var ChargePointConnectorsGrp1 = []models.ChargePointConnector{
-// 	models.ChargePointConnector{
-// 		Id:     1,
-// 		Status: "Available",
-// 	},
-// 	models.ChargePointConnector{
-// 		Id:     2,
-// 		Status: "Available",
-// 	},
-// 	models.ChargePointConnector{
-// 		Id:     3,
-// 		Status: "Available",
-// 	},
-// }
-// var ChargePointConnectorsGrp2 = []models.ChargePointConnector{
-// 	models.ChargePointConnector{
-// 		Id:     4,
-// 		Status: "Available",
-// 	},
-// 	models.ChargePointConnector{
-// 		Id:     5,
-// 		Status: "Available",
-// 	},
-// 	models.ChargePointConnector{
-// 		Id:     6,
-// 		Status: "Available",
-// 	},
-// }
-// var ChargePointConnectorsGrp3 = []models.ChargePointConnector{
-// 	models.ChargePointConnector{
-// 		Id:     7,
-// 		Status: "Available",
-// 	},
-// 	models.ChargePointConnector{
-// 		Id:     8,
-// 		Status: "Available",
-// 	},
-// 	models.ChargePointConnector{
-// 		Id:     9,
-// 		Status: "Available",
-// 	},
-// }
+type GroupReq struct {
+	MaxCurrent float64
+}
 
-// var ChargePointStatus1 = models.ChargePointStatus{
-// 	ChargePointId:         "1",
-// 	Priority:              1,
-// 	ChargePointConnectors: ChargePointConnectorsGrp1,
-// }
-// var ChargePointStatus2 = models.ChargePointStatus{
-// 	ChargePointId:         "2",
-// 	Priority:              2,
-// 	ChargePointConnectors: ChargePointConnectorsGrp2,
-// }
-// var ChargePointStatus3 = models.ChargePointStatus{
-// 	ChargePointId:         "3",
-// 	Priority:              3,
-// 	ChargePointConnectors: ChargePointConnectorsGrp3,
-// }
+// @Param maxCurrent   path int true "maxCurrent"
+// @Success 204 {string} string "No Content"
+// @Router /addGroup [post]
+func addGroup(c *gin.Context) {
+	var req GroupReq
+	c.BindJSON(&req)
+	cnt := container.GetContainer()
+	storage := cnt.Storage()
+	storage.AddGroup(req.MaxCurrent)
+}
 
-// var group1 = models.Group{
-// 	Id:           "1",
-// 	MaxCurrent:   100.0,
-// 	ChargePoints: []models.ChargePointStatus{ChargePointStatus1, ChargePointStatus2},
-// }
-// var group2 = models.Group{
-// 	Id:           "2",
-// 	MaxCurrent:   50.0,
-// 	ChargePoints: []models.ChargePointStatus{ChargePointStatus3},
-// }
+type ChargPointReq struct {
+	Priority int
+	GroupId  int
+}
+
+// @Param Priority   path int true "Priority"
+// @Param GroupId   path int true "GroupId"
+// @Success 204 {string} string "No Content"
+// @Router /addChargePoint [post]
+func addChargePoint(c *gin.Context) {
+	var req ChargPointReq
+	c.BindJSON(&req)
+	cnt := container.GetContainer()
+	storage := cnt.Storage()
+	storage.AddChargePoint(req.Priority, req.GroupId)
+}
+
+type ChargePointConnector struct {
+	ChargePointId int
+	Status        string
+}
+
+// @Param ChargePointId   path int true "ChargePointId"
+// @Param Status   path int true "Status"
+// @Success 204 {string} string "No Content"
+// @Router /addChargePointConnector [post]
+func addChargePointConnector(c *gin.Context) {
+	var req ChargePointConnector
+	c.BindJSON(&req)
+	cnt := container.GetContainer()
+	storage := cnt.Storage()
+	storage.AddChargePointConnector(req.Status, req.ChargePointId)
+}

@@ -1,0 +1,124 @@
+basePath: /api/v1
+host: localhost:8080
+info:
+  contact: {}
+  description: GLCharge API documentation.
+  title: GLCharge
+  version: "1.0"
+paths:
+  /addChargePoint:
+    post:
+      parameters:
+      - description: Priority
+        in: path
+        name: Priority
+        required: true
+        type: integer
+      - description: GroupId
+        in: path
+        name: GroupId
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+  /addChargePointConnector:
+    post:
+      parameters:
+      - description: ChargePointId
+        in: path
+        name: ChargePointId
+        required: true
+        type: integer
+      - description: Status
+        in: path
+        name: Status
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+  /addGroup:
+    post:
+      parameters:
+      - description: maxCurrent
+        in: path
+        name: maxCurrent
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+  /changeChargePointPriority/:chargePointId/:priority:
+    put:
+      parameters:
+      - description: priority
+        in: path
+        name: priority
+        required: true
+        type: integer
+      - description: chargePointId
+        in: path
+        name: chargePointId
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "500":
+          description: Priority is not a number
+          schema:
+            type: string
+  /changeConnectorStatus/:connectorId/:status:
+    put:
+      parameters:
+      - description: status
+        in: path
+        name: status
+        required: true
+        type: integer
+      - description: connectorId
+        in: path
+        name: connectorId
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Wrong status value
+          schema:
+            type: string
+        "500":
+          description: Missing status value
+          schema:
+            type: string
+  /changeMaxCurrentGroup/:groupId/:maxCurrent:
+    put:
+      parameters:
+      - description: maxCurrent
+        in: path
+        name: maxCurrent
+        required: true
+        type: integer
+      - description: groupId
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "500":
+          description: MaxCurrent must be greater or equal to 0
+          schema:
+            type: string
+swagger: "2.0"

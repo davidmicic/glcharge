@@ -1,0 +1,192 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "GLCharge API documentation.",
+        "title": "GLCharge",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/addChargePoint": {
+            "post": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Priority",
+                        "name": "Priority",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "GroupId",
+                        "name": "GroupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/addChargePointConnector": {
+            "post": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ChargePointId",
+                        "name": "ChargePointId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Status",
+                        "name": "Status",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/addGroup": {
+            "post": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "maxCurrent",
+                        "name": "maxCurrent",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/changeChargePointPriority/:chargePointId/:priority": {
+            "put": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "priority",
+                        "name": "priority",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "chargePointId",
+                        "name": "chargePointId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Priority is not a number",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/changeConnectorStatus/:connectorId/:status": {
+            "put": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "status",
+                        "name": "status",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "connectorId",
+                        "name": "connectorId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Wrong status value",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Missing status value",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/changeMaxCurrentGroup/:groupId/:maxCurrent": {
+            "put": {
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "maxCurrent",
+                        "name": "maxCurrent",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "groupId",
+                        "name": "groupId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "MaxCurrent must be greater or equal to 0",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

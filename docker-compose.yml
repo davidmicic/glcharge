@@ -15,3 +15,5 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
+    environment:
+      - CONN_STR=postgresql://root:root@postgres:5432/glcharge?sslmode=disable
