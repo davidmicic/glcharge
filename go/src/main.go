@@ -17,7 +17,7 @@ import (
 // @description     GLCharge API documentation.
 
 // @host      localhost:8080
-// @BasePath  /api/v1
+// @BasePath  /
 func main() {
 	godotenv.Load()
 	conn_str := os.Getenv("CONN_STR")
