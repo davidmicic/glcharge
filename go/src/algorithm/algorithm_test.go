@@ -21,6 +21,16 @@ var (
 type DalMock struct {
 }
 
+// GetChargePointStatusById implements storage.IDal.
+func (*DalMock) GetChargePointStatusById(id int) (models.ChargePointStatus, error) {
+	panic("unimplemented")
+}
+
+// GetChargePointStatusGroupId implements storage.IDal.
+func (*DalMock) GetChargePointStatusGroupId(id int) ([]models.ChargePointStatus, error) {
+	panic("unimplemented")
+}
+
 // AddChargePoint implements storage.IDal.
 func (*DalMock) AddChargePoint(priority int, groupId int) error {
 	panic("unimplemented")

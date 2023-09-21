@@ -17,9 +17,21 @@ var (
 	ChangeConnectorStatusByIdDB     func(id int, status string) error
 	ChangeChargePointPriorityByIdDB func(id int, priority int) error
 	GetChargePointStatusDB          func() ([]models.ChargePointStatus, error)
+	GetChargePointStatusByIdDB      func() (models.ChargePointStatus, error)
+	GetChargePointStatusGroupIdDB   func() ([]models.ChargePointStatus, error)
 )
 
 type DalMock struct {
+}
+
+// GetChargePointStatusById implements storage.IDal.
+func (*DalMock) GetChargePointStatusById(id int) (models.ChargePointStatus, error) {
+	return GetChargePointStatusByIdDB()
+}
+
+// GetChargePointStatusGroupId implements storage.IDal.
+func (*DalMock) GetChargePointStatusGroupId(id int) ([]models.ChargePointStatus, error) {
+	return GetChargePointStatusGroupIdDB()
 }
 
 // AddChargePoint implements storage.IDal.
@@ -80,6 +92,27 @@ func TestChangeChargePointPriority(t *testing.T) {
 		GroupId:       1,
 	}
 
+	GetChargePointStatusByIdDB = func() (models.ChargePointStatus, error) {
+		return chargePointStatus, nil
+	}
+
+	GetChargePointStatusGroupIdDB = func() ([]models.ChargePointStatus, error) {
+		var chargePoints []models.ChargePointStatus
+		chargePoints = append(chargePoints,
+			models.ChargePointStatus{
+				ChargePointId: 1,
+				Priority:      1,
+				GroupId:       1,
+			},
+			models.ChargePointStatus{
+				ChargePointId: 2,
+				Priority:      1,
+				GroupId:       1,
+			},
+		)
+		return chargePoints, nil
+	}
+
 	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
 		var chargePoints []models.ChargePointStatus
 		chargePoints = append(chargePoints,
@@ -120,7 +153,15 @@ func TestChangeChargePointPriority(t *testing.T) {
 }
 
 func TestChangeChargePointPriorityWrongValueChargePointId(t *testing.T) {
-	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
+	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
+		return errors.New("")
+	}
+
+	GetChargePointStatusByIdDB = func() (models.ChargePointStatus, error) {
+		return models.ChargePointStatus{}, nil
+	}
+
+	GetChargePointStatusGroupIdDB = func() ([]models.ChargePointStatus, error) {
 		var chargePoints []models.ChargePointStatus
 		chargePoints = append(chargePoints,
 			models.ChargePointStatus{
@@ -135,10 +176,6 @@ func TestChangeChargePointPriorityWrongValueChargePointId(t *testing.T) {
 			},
 		)
 		return chargePoints, nil
-	}
-
-	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
-		return errors.New("")
 	}
 
 	body := strings.NewReader(`{"ChargePointId": 3, "Priority": 1}`)
@@ -161,7 +198,11 @@ func TestChangeChargePointPriorityWrongTypeChargePointId(t *testing.T) {
 		GroupId:       1,
 	}
 
-	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
+	GetChargePointStatusByIdDB = func() (models.ChargePointStatus, error) {
+		return models.ChargePointStatus{}, nil
+	}
+
+	GetChargePointStatusGroupIdDB = func() ([]models.ChargePointStatus, error) {
 		var chargePoints []models.ChargePointStatus
 		chargePoints = append(chargePoints,
 			models.ChargePointStatus{
@@ -201,6 +242,27 @@ func TestChangeChargePointPriorityWrongTypePriority(t *testing.T) {
 		ChargePointId: 1,
 		Priority:      1,
 		GroupId:       1,
+	}
+
+	GetChargePointStatusByIdDB = func() (models.ChargePointStatus, error) {
+		return models.ChargePointStatus{}, nil
+	}
+
+	GetChargePointStatusGroupIdDB = func() ([]models.ChargePointStatus, error) {
+		var chargePoints []models.ChargePointStatus
+		chargePoints = append(chargePoints,
+			models.ChargePointStatus{
+				ChargePointId: 1,
+				Priority:      1,
+				GroupId:       1,
+			},
+			models.ChargePointStatus{
+				ChargePointId: 2,
+				Priority:      1,
+				GroupId:       1,
+			},
+		)
+		return chargePoints, nil
 	}
 
 	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
@@ -244,8 +306,20 @@ func TestChangeChargePointPriorityWrongValuePriority2(t *testing.T) {
 		GroupId:       1,
 	}
 
-	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
-		return nil, nil
+	GetChargePointStatusByIdDB = func() (models.ChargePointStatus, error) {
+		return models.ChargePointStatus{}, nil
+	}
+
+	GetChargePointStatusGroupIdDB = func() ([]models.ChargePointStatus, error) {
+		var chargePoints []models.ChargePointStatus
+		chargePoints = append(chargePoints,
+			models.ChargePointStatus{
+				ChargePointId: 1,
+				Priority:      1,
+				GroupId:       1,
+			},
+		)
+		return chargePoints, nil
 	}
 
 	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
@@ -274,7 +348,11 @@ func TestChangeChargePointPriorityWrongValuePriority2(t *testing.T) {
 }
 
 func TestChangeChargePointPriorityPriorityTooLow(t *testing.T) {
-	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
+	GetChargePointStatusByIdDB = func() (models.ChargePointStatus, error) {
+		return models.ChargePointStatus{}, nil
+	}
+
+	GetChargePointStatusGroupIdDB = func() ([]models.ChargePointStatus, error) {
 		var chargePoints []models.ChargePointStatus
 		chargePoints = append(chargePoints,
 			models.ChargePointStatus{
@@ -318,21 +396,25 @@ func TestChangeChargePointPriorityWrongValuePriority(t *testing.T) {
 		GroupId:       1,
 	}
 
-	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
+	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
+		chargePointStatus.Priority = priority
+		return nil
+	}
+
+	GetChargePointStatusByIdDB = func() (models.ChargePointStatus, error) {
+		return models.ChargePointStatus{}, nil
+	}
+
+	GetChargePointStatusGroupIdDB = func() ([]models.ChargePointStatus, error) {
 		var chargePoints []models.ChargePointStatus
 		chargePoints = append(chargePoints,
 			models.ChargePointStatus{
 				ChargePointId: 1,
-				Priority:      0,
+				Priority:      1,
 				GroupId:       1,
 			},
 		)
 		return chargePoints, nil
-	}
-
-	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
-		chargePointStatus.Priority = priority
-		return nil
 	}
 
 	body := strings.NewReader(`{"ChargePointId": 1, "Priority": 3}`)
@@ -356,7 +438,11 @@ func TestChangeChargePointPriorityWrongValuePriority(t *testing.T) {
 }
 
 func TestChangeChargePointPriorityPriorityTooHigh(t *testing.T) {
-	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
+	GetChargePointStatusByIdDB = func() (models.ChargePointStatus, error) {
+		return models.ChargePointStatus{}, nil
+	}
+
+	GetChargePointStatusGroupIdDB = func() ([]models.ChargePointStatus, error) {
 		var chargePoints []models.ChargePointStatus
 		chargePoints = append(chargePoints,
 			models.ChargePointStatus{

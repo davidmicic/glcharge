@@ -11,6 +11,8 @@ type IDal interface {
 	InitDB(conn_str string)
 	GetGroups() ([]models.Group, error)
 	GetChargePointStatus() ([]models.ChargePointStatus, error)
+	GetChargePointStatusById(id int) (models.ChargePointStatus, error)
+	GetChargePointStatusGroupId(id int) ([]models.ChargePointStatus, error)
 	GetChargePointConnector() ([]models.ChargePointConnector, error)
 	ChangeGroupMaxCurrentById(id int, maxCurrent float64) error
 	ChangeConnectorStatusById(id int, status string) error
@@ -138,6 +140,71 @@ func (d *DalDB) GetChargePointStatus() ([]models.ChargePointStatus, error) {
 	}
 
 	return chargePoints, nil
+}
+
+func (d *DalDB) GetChargePointStatusById(id int) (models.ChargePointStatus, error) {
+	fmt.Println("Called GetChargePointStatus")
+	stmt, err := d.Db.Prepare("select * from public.chargepointstatus WHERE ChargePointId = $1")
+
+	if err != nil {
+		log.Print(err)
+		return models.ChargePointStatus{}, err
+	}
+
+	row := stmt.QueryRow(id)
+
+	var obj models.ChargePointStatus
+	if err := row.Scan(&obj.ChargePointId, &obj.Priority, &obj.GroupId); err != nil {
+		log.Print(err)
+		return models.ChargePointStatus{}, err
+	}
+
+	return obj, nil
+}
+
+func (d *DalDB) GetChargePointStatusGroupId(id int) ([]models.ChargePointStatus, error) {
+	fmt.Println("Called GetChargePointStatus")
+	stmt, err := d.Db.Prepare("SELECT * FROM public.chargepointstatus WHERE groupId = $1")
+	var chargePoints []models.ChargePointStatus
+
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+
+	rows, err := stmt.Query(id)
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+
+	for rows.Next() {
+		var obj models.ChargePointStatus
+		if err := rows.Scan(&obj.ChargePointId, &obj.Priority, &obj.GroupId); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		chargePoints = append(chargePoints, obj)
+	}
+
+	return chargePoints, nil
+
+	// fmt.Println("Called AddGroup")
+	// stmt, err := d.Db.Prepare("INSERT INTO public.group (MaxCurrent) VALUES ($1)")
+
+	// if err != nil {
+	// 	log.Print(err)
+	// 	return err
+	// }
+
+	// _, err = stmt.Exec(maxCurrent)
+	// if err != nil {
+	// 	log.Print(err)
+	// 	return err
+	// 	// panic(err)
+	// }
+	// return nil
 }
 
 func (d *DalDB) GetChargePointConnector() ([]models.ChargePointConnector, error) {

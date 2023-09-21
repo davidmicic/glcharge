@@ -100,7 +100,12 @@ func changeChargePointPriority(c *gin.Context) {
 
 	cnt := container.GetContainer()
 	storage := cnt.Storage()
-	chargePoints, err := storage.GetChargePointStatus()
+	chargePoint, err := storage.GetChargePointStatusById(chargePointId)
+	if err != nil {
+		return500(c)
+		return
+	}
+	chargePoints, err := storage.GetChargePointStatusGroupId(chargePoint.GroupId)
 	if err != nil {
 		return500(c)
 		return
@@ -235,10 +240,12 @@ func addChargePoint(c *gin.Context) {
 	var req ChargePointReq
 	c.BindJSON(&req)
 	priority := req.Priority
+	groupId := req.GroupId
 
 	cnt := container.GetContainer()
 	storage := cnt.Storage()
-	chargePoints, err := storage.GetChargePointStatus()
+
+	chargePoints, err := storage.GetChargePointStatusGroupId(groupId)
 	if err != nil {
 		return500(c)
 		return
@@ -265,7 +272,7 @@ func addChargePoint(c *gin.Context) {
 		return
 	}
 
-	err = storage.AddChargePoint(req.Priority, req.GroupId)
+	err = storage.AddChargePoint(priority, groupId)
 	if err != nil {
 		return500(c)
 		return
