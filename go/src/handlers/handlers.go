@@ -5,7 +5,6 @@ import (
 	"glcharge/go/src/algorithm"
 	"glcharge/go/src/container"
 	"net/http"
-	"strconv"
 
 	_ "glcharge/go/src/docs"
 
@@ -16,9 +15,9 @@ import (
 
 func Makehttphandlers() *gin.Engine {
 	r := gin.Default()
-	r.PUT("/changeChargePointPriority/:chargePointId/:priority", changeChargePointPriority)
-	r.PUT("/changeConnectorStatus/:connectorId/:status", changeConnectorStatus)
-	r.PUT("/changeMaxCurrentGroup/:groupId/:maxCurrent", changeMaxCurrentGroup)
+	r.PUT("/changeChargePointPriority", changeChargePointPriority)
+	r.PUT("/changeConnectorStatus", changeConnectorStatus)
+	r.PUT("/changeMaxCurrentGroup", changeMaxCurrentGroup)
 	r.POST("/addGroup", addGroup)
 	r.POST("/addChargePoint", addChargePoint)
 	r.POST("/addChargePointConnector", addChargePointConnector)
@@ -30,149 +29,268 @@ func Makehttphandlers() *gin.Engine {
 	return r
 }
 
-// @Param priority   path int true "priority"
-// @Param chargePointId path int true "chargePointId"
-// @Failure 500 {object} string "ChargePointId is not a number"
-// @Failure 500 {object} string "Priority is not a number"
-// @Success 204 {string} string "No Content"
-// @Router /changeChargePointPriority/:chargePointId/:priority [put]
-func changeChargePointPriority(c *gin.Context) {
-	fmt.Println("called: changeChargePointPriority")
-
-	chargePointId, err := strconv.Atoi(c.Param("chargePointId"))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "ChargePointId is not a number",
-		})
-		return
-	}
-	priority, err := strconv.Atoi(c.Param("priority"))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Priority is not a number",
-		})
-		return
-	}
-
-	cnt := container.GetContainer()
-	storage := cnt.Storage()
-
-	chargePoints, _ := storage.GetChargePointStatus()
-	numberOfChargePoints := len(chargePoints)
-
-	if priority > numberOfChargePoints || priority < 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": fmt.Sprintf("Priority should be between 0 and %d", numberOfChargePoints),
-		})
-		return
-	}
-
-	storage.ChangeChargePointPriorityById(chargePointId, priority)
-	resultMap := algorithm.Algorithm()
-	c.JSON(http.StatusOK, resultMap)
-}
-
-// @Param status   path int true "status"
-// @Param connectorId path int true "connectorId"
-// @Failure 500 {object} string "ConnectorId is not a number"
-// @Failure 500 {object} string "Missing status value"
-// @Success 204 {string} string "Wrong status value"
-// @Router /changeConnectorStatus/:connectorId/:status [put]
-func changeConnectorStatus(c *gin.Context) {
-	connectorId, err := strconv.Atoi(c.Param("connectorId"))
-	status := c.Param("status")
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "ConnectorId is not a number"})
-		return
-	}
-	if status == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Missing status value"})
-		return
-	}
+func checkConnectorStatus(c *gin.Context, status string) bool {
 	if status != "Available" && status != "Charging" {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Wrong status value"})
-		return
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Wrong status value"})
+		c.Abort()
+		return false
 	}
-
-	cnt := container.GetContainer()
-	storage := cnt.Storage()
-	storage.ChangeConnectorStatusById(connectorId, status)
+	return true
 }
 
-// @Param maxCurrent   path int true "maxCurrent"
-// @Param groupId path int true "groupId"
-// @Failure 500 {object} string "GroupId is not a number"
-// @Failure 500 {object} string "MaxCurrent is not a number"
-// @Failure 500 {object} string "MaxCurrent must be greater or equal to 0"
-// @Success 204 {string} string "No Content"
-// @Router /changeMaxCurrentGroup/:groupId/:maxCurrent [put]
-func changeMaxCurrentGroup(c *gin.Context) {
-	groupId, err := strconv.Atoi(c.Param("groupId"))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "GroupId is not a number"})
-		return
+func checkMaxCurrentValue(c *gin.Context, maxCurrent float64) bool {
+	if maxCurrent < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "MaxCurrent must be greater or equal to 0"})
+		c.Abort()
+		return false
 	}
+	return true
+}
 
-	maxCurrent, err := strconv.ParseFloat(c.Param("maxCurrent"), 64)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "MaxCurrent is not a number"})
-		return
-	} else if maxCurrent < 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "MaxCurrent must be greater or equal to 0"})
-		return
-	}
+func return500(c *gin.Context) {
+	c.JSON(http.StatusInternalServerError, "Internal server error")
+}
 
-	cnt := container.GetContainer()
-	storage := cnt.Storage()
-	storage.ChangeGroupMaxCurrentById(groupId, maxCurrent)
+type HandlerRes struct {
+	ResultMap map[int]float64 `json:"resultMap"`
+}
+
+type ChangeChargePointPriorityReq struct {
+	ChargePointId int `json:"ChargePointId" example:"1"`
+	Priority      int `json:"Priority" example:"1"`
+}
+
+type ChangeConnectorStatusReq struct {
+	Id     int    `json:"Id" example:"1"`
+	Status string `json:"Status" example:"Available"`
+}
+
+type ChangeMaxCurrentGroupReq struct {
+	Id         int     `json:"Id" example:"1"`
+	MaxCurrent float64 `json:"MaxCurrent" example:"100.0"`
 }
 
 type GroupReq struct {
-	MaxCurrent float64
+	MaxCurrent float64 `json:"MaxCurrent" example:"100.0"`
 }
 
-// @Param maxCurrent   path int true "maxCurrent"
-// @Success 204 {string} string "No Content"
+type ChargePointReq struct {
+	Priority int `json:"Priority" example:"1"`
+	GroupId  int `json:"GroupId" example:"1"`
+}
+
+type ChargePointConnectorReq struct {
+	ChargePointId int    `json:"ChargePointId" example:"1"`
+	Status        string `json:"Status" example:"Available"`
+}
+
+// @Accept  json
+// @Produce json
+// @Param request   body handlers.ChangeChargePointPriorityReq true "ChangeChargePointPriorityReq"
+// @Success 200 {object} handlers.HandlerRes
+// @Failure 400
+// @Failure 500
+// @Router /changeChargePointPriority [put]
+func changeChargePointPriority(c *gin.Context) {
+	var req ChangeChargePointPriorityReq
+	c.BindJSON(&req)
+
+	chargePointId := req.ChargePointId
+	priority := req.Priority
+
+	cnt := container.GetContainer()
+	storage := cnt.Storage()
+	chargePoints, err := storage.GetChargePointStatus()
+	if err != nil {
+		return500(c)
+		return
+	}
+
+	numberOfChargePoints := len(chargePoints)
+
+	if (numberOfChargePoints == 0 || numberOfChargePoints == 1) && priority != 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Priority should be 0",
+		})
+		c.Abort()
+		return
+	} else if numberOfChargePoints > 1 && priority >= numberOfChargePoints {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Priority should be between 0 and %d", numberOfChargePoints-1),
+		})
+		c.Abort()
+		return
+	} else if priority < 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Priority should not be negative",
+		})
+		c.Abort()
+		return
+	}
+
+	err = storage.ChangeChargePointPriorityById(chargePointId, priority)
+	if err != nil {
+		return500(c)
+		return
+	}
+
+	resultMap := algorithm.Algorithm()
+	handlerRes := HandlerRes{
+		ResultMap: resultMap,
+	}
+	c.JSON(http.StatusOK, handlerRes)
+}
+
+// @Accept  json
+// @Param request   body handlers.ChangeConnectorStatusReq true "ChangeConnectorStatusReq"
+// @Success 200 {object} handlers.HandlerRes
+// @Failure 400
+// @Failure 500
+// @Router /changeConnectorStatus [put]
+func changeConnectorStatus(c *gin.Context) {
+	var req ChangeConnectorStatusReq
+	c.BindJSON(&req)
+
+	connectorId := req.Id
+	status := req.Status
+	if x := checkConnectorStatus(c, status); !x {
+		return
+	}
+
+	cnt := container.GetContainer()
+	storage := cnt.Storage()
+
+	err := storage.ChangeConnectorStatusById(connectorId, status)
+	if err != nil {
+		return500(c)
+		return
+	}
+
+	resultMap := algorithm.Algorithm()
+	handlerRes := HandlerRes{
+		ResultMap: resultMap,
+	}
+	c.JSON(http.StatusOK, handlerRes)
+}
+
+// @Accept  json
+// @Param request   body handlers.ChangeMaxCurrentGroupReq true "ChangeMaxCurrentGroupReq"
+// @Success 200 {object} handlers.HandlerRes
+// @Failure 400
+// @Failure 500
+// @Router /changeMaxCurrentGroup [put]
+func changeMaxCurrentGroup(c *gin.Context) {
+
+	var req ChangeMaxCurrentGroupReq
+	c.BindJSON(&req)
+
+	groupId := req.Id
+	maxCurrent := req.MaxCurrent
+	if x := checkMaxCurrentValue(c, maxCurrent); !x {
+		return
+	}
+
+	cnt := container.GetContainer()
+	storage := cnt.Storage()
+	err := storage.ChangeGroupMaxCurrentById(groupId, maxCurrent)
+	if err != nil {
+		return500(c)
+		return
+	}
+
+	resultMap := algorithm.Algorithm()
+	handlerRes := HandlerRes{
+		ResultMap: resultMap,
+	}
+	c.JSON(http.StatusOK, handlerRes)
+}
+
+// @Param request   body GroupReq true "GroupReq"
+// @Success 200
+// @Failure 500
 // @Router /addGroup [post]
 func addGroup(c *gin.Context) {
 	var req GroupReq
 	c.BindJSON(&req)
+
+	maxCurrent := req.MaxCurrent
+	if x := checkMaxCurrentValue(c, maxCurrent); !x {
+		return
+	}
+
 	cnt := container.GetContainer()
 	storage := cnt.Storage()
-	storage.AddGroup(req.MaxCurrent)
+	err := storage.AddGroup(maxCurrent)
+	if err != nil {
+		return500(c)
+		return
+	}
 }
 
-type ChargPointReq struct {
-	Priority int
-	GroupId  int
-}
-
-// @Param Priority   path int true "Priority"
-// @Param GroupId   path int true "GroupId"
-// @Success 204 {string} string "No Content"
+// @Param request   body ChargePointReq true "ChargePointReq"
+// @Success 200
+// @Failure 500
 // @Router /addChargePoint [post]
 func addChargePoint(c *gin.Context) {
-	var req ChargPointReq
+	var req ChargePointReq
 	c.BindJSON(&req)
+	priority := req.Priority
+
 	cnt := container.GetContainer()
 	storage := cnt.Storage()
-	storage.AddChargePoint(req.Priority, req.GroupId)
+	chargePoints, err := storage.GetChargePointStatus()
+	if err != nil {
+		return500(c)
+		return
+	}
+	numberOfChargePoints := len(chargePoints)
+
+	if numberOfChargePoints == 0 && priority != 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Priority should be 0",
+		})
+		c.Abort()
+		return
+	} else if numberOfChargePoints > 0 && priority > numberOfChargePoints {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": fmt.Sprintf("Priority should be between 0 and %d", numberOfChargePoints),
+		})
+		c.Abort()
+		return
+	} else if priority < 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Priority should not be negative",
+		})
+		c.Abort()
+		return
+	}
+
+	err = storage.AddChargePoint(req.Priority, req.GroupId)
+	if err != nil {
+		return500(c)
+		return
+	}
 }
 
-type ChargePointConnector struct {
-	ChargePointId int
-	Status        string
-}
-
-// @Param ChargePointId   path int true "ChargePointId"
-// @Param Status   path int true "Status"
-// @Success 204 {string} string "No Content"
+// @Param request   body ChargePointConnectorReq true "ChargePointConnectorReq"
+// @Success 200
+// @Failure 500
 // @Router /addChargePointConnector [post]
 func addChargePointConnector(c *gin.Context) {
-	var req ChargePointConnector
+	var req ChargePointConnectorReq
 	c.BindJSON(&req)
+
+	chargePointId := req.ChargePointId
+	status := req.Status
+	if x := checkConnectorStatus(c, status); !x {
+		return
+	}
+
 	cnt := container.GetContainer()
 	storage := cnt.Storage()
-	storage.AddChargePointConnector(req.Status, req.ChargePointId)
+	err := storage.AddChargePointConnector(status, chargePointId)
+	if err != nil {
+		return500(c)
+		return
+	}
 }

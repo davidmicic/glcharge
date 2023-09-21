@@ -22,32 +22,32 @@ type DalMock struct {
 }
 
 // AddChargePoint implements storage.IDal.
-func (*DalMock) AddChargePoint(priority int, groupId int) {
+func (*DalMock) AddChargePoint(priority int, groupId int) error {
 	panic("unimplemented")
 }
 
 // AddChargePointConnector implements storage.IDal.
-func (*DalMock) AddChargePointConnector(status string, chargePointId int) {
+func (*DalMock) AddChargePointConnector(status string, chargePointId int) error {
 	panic("unimplemented")
 }
 
 // AddGroup implements storage.IDal.
-func (*DalMock) AddGroup(maxCurrent float64) {
+func (*DalMock) AddGroup(maxCurrent float64) error {
 	panic("unimplemented")
 }
 
 // ChangeChargePointPriorityById implements IDal.
-func (*DalMock) ChangeChargePointPriorityById(id int, priority int) {
+func (*DalMock) ChangeChargePointPriorityById(id int, priority int) error {
 	panic("unimplemented")
 }
 
 // ChangeConnectorStatusById implements IDal.
-func (*DalMock) ChangeConnectorStatusById(id int, status string) {
+func (*DalMock) ChangeConnectorStatusById(id int, status string) error {
 	panic("unimplemented")
 }
 
 // ChangeGroupMaxCurrentById implements IDal.
-func (*DalMock) ChangeGroupMaxCurrentById(id int, maxCurrent float64) {
+func (*DalMock) ChangeGroupMaxCurrentById(id int, maxCurrent float64) error {
 	panic("unimplemented")
 }
 

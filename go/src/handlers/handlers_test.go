@@ -2,70 +2,72 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	c "glcharge/go/src/container"
 	"glcharge/go/src/models"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	ChangeGroupMaxCurrentByIdDB     func(id int, maxCurrent float64)
-	ChangeConnectorStatusByIdDB     func(id int, status string)
-	ChangeChargePointPriorityByIdDB func(id int, priority int)
+	ChangeGroupMaxCurrentByIdDB     func(id int, maxCurrent float64) error
+	ChangeConnectorStatusByIdDB     func(id int, status string) error
+	ChangeChargePointPriorityByIdDB func(id int, priority int) error
 	GetChargePointStatusDB          func() ([]models.ChargePointStatus, error)
 )
 
 type DalMock struct {
 }
 
-// GetGroups implements storage.IDal.
-func (*DalMock) GetGroups() ([]models.Group, error) {
-	panic("unimplemented")
-}
-
 // AddChargePoint implements storage.IDal.
-func (*DalMock) AddChargePoint(priority int, groupId int) {
-	panic("unimplemented")
+func (*DalMock) AddChargePoint(priority int, groupId int) error {
+	return nil
 }
 
 // AddChargePointConnector implements storage.IDal.
-func (*DalMock) AddChargePointConnector(status string, chargePointId int) {
-	panic("unimplemented")
+func (*DalMock) AddChargePointConnector(status string, chargePointId int) error {
+	return nil
 }
 
 // AddGroup implements storage.IDal.
-func (*DalMock) AddGroup(maxCurrent float64) {
-	panic("unimplemented")
+func (*DalMock) AddGroup(maxCurrent float64) error {
+	return nil
 }
 
-// ChangeChargePointPriorityById implements IDal.
-func (*DalMock) ChangeChargePointPriorityById(id int, priority int) {
-	ChangeChargePointPriorityByIdDB(id, priority)
+// ChangeChargePointPriorityById implements storage.IDal.
+func (*DalMock) ChangeChargePointPriorityById(id int, priority int) error {
+	return ChangeChargePointPriorityByIdDB(id, priority)
 }
 
-// ChangeConnectorStatusById implements IDal.
-func (*DalMock) ChangeConnectorStatusById(id int, status string) {
-	ChangeConnectorStatusByIdDB(id, status)
+// ChangeConnectorStatusById implements storage.IDal.
+func (*DalMock) ChangeConnectorStatusById(id int, status string) error {
+	return ChangeConnectorStatusByIdDB(id, status)
 }
 
-// ChangeGroupMaxCurrentById implements IDal.
-func (*DalMock) ChangeGroupMaxCurrentById(id int, maxCurrent float64) {
-	ChangeGroupMaxCurrentByIdDB(id, maxCurrent)
+// ChangeGroupMaxCurrentById implements storage.IDal.
+func (*DalMock) ChangeGroupMaxCurrentById(id int, maxCurrent float64) error {
+	return ChangeGroupMaxCurrentByIdDB(id, maxCurrent)
 }
 
-// GetChargePointConnector implements IDal.
+// GetChargePointConnector implements storage.IDal.
 func (*DalMock) GetChargePointConnector() ([]models.ChargePointConnector, error) {
 	return nil, nil
 }
 
-// GetChargePointStatus implements IDal.
+// GetChargePointStatus implements storage.IDal.
 func (*DalMock) GetChargePointStatus() ([]models.ChargePointStatus, error) {
 	return GetChargePointStatusDB()
 }
 
-// InitDB implements IDal.
+// GetGroups implements storage.IDal.
+func (*DalMock) GetGroups() ([]models.Group, error) {
+	return nil, nil
+}
+
+// InitDB implements storage.IDal.
 func (*DalMock) InitDB(conn_str string) {
 	panic("unimplemented")
 }
@@ -74,7 +76,7 @@ func TestChangeChargePointPriority(t *testing.T) {
 
 	var chargePointStatus = models.ChargePointStatus{
 		ChargePointId: 1,
-		Priority:      1,
+		Priority:      0,
 		GroupId:       1,
 	}
 
@@ -95,86 +97,29 @@ func TestChangeChargePointPriority(t *testing.T) {
 		return chargePoints, nil
 	}
 
-	ChangeChargePointPriorityByIdDB = func(id int, priority int) {
+	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
 		chargePointStatus.Priority = priority
+		return nil
 	}
+
+	body := strings.NewReader(`{"ChargePointId": 1, "Priority": 1}`)
 
 	container := c.ResetContainer()
 	mockStorage := new(DalMock)
 	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeChargePointPriority/1/2", nil)
+	req := httptest.NewRequest("PUT", "/changeChargePointPriority", body)
 	rr := httptest.NewRecorder()
 
 	Makehttphandlers().ServeHTTP(rr, req)
 	assert.Equal(t,
 		models.ChargePointStatus{
 			ChargePointId: 1,
-			Priority:      2,
+			Priority:      1,
 			GroupId:       1,
 		}, chargePointStatus)
 }
 
-func TestChangeChargePointPriorityBadValueChargePointId(t *testing.T) {
-
-	var chargePointStatus = models.ChargePointStatus{
-		ChargePointId: 1,
-		Priority:      1,
-		GroupId:       1,
-	}
-
-	ChangeChargePointPriorityByIdDB = func(id int, priority int) {
-		chargePointStatus.Priority = priority
-	}
-
-	container := c.ResetContainer()
-	mockStorage := new(DalMock)
-	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeChargePointPriority/a/5", nil)
-	rr := httptest.NewRecorder()
-
-	Makehttphandlers().ServeHTTP(rr, req)
-
-	var response map[string]string
-	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal JSON response: %v", err)
-	}
-
-	assert.Equal(t, 500, rr.Result().StatusCode)
-	assert.Equal(t, "ChargePointId is not a number", response["message"])
-}
-
-func TestChangeChargePointPriorityBadValuePriority(t *testing.T) {
-
-	var chargePointStatus = models.ChargePointStatus{
-		ChargePointId: 1,
-		Priority:      1,
-		GroupId:       1,
-	}
-
-	ChangeChargePointPriorityByIdDB = func(id int, priority int) {
-		chargePointStatus.Priority = priority
-	}
-
-	container := c.ResetContainer()
-	mockStorage := new(DalMock)
-	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeChargePointPriority/1/a", nil)
-	rr := httptest.NewRecorder()
-
-	Makehttphandlers().ServeHTTP(rr, req)
-
-	var response map[string]string
-	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal JSON response: %v", err)
-	}
-
-	assert.Equal(t, 500, rr.Result().StatusCode)
-	assert.Equal(t, "Priority is not a number", response["message"])
-}
-
-func TestChangeChargePointPriorityBadValuePriorityTooLow(t *testing.T) {
+func TestChangeChargePointPriorityWrongValueChargePointId(t *testing.T) {
 	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
 		var chargePoints []models.ChargePointStatus
 		chargePoints = append(chargePoints,
@@ -192,25 +137,30 @@ func TestChangeChargePointPriorityBadValuePriorityTooLow(t *testing.T) {
 		return chargePoints, nil
 	}
 
+	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
+		return errors.New("")
+	}
+
+	body := strings.NewReader(`{"ChargePointId": 3, "Priority": 1}`)
+
 	container := c.ResetContainer()
 	mockStorage := new(DalMock)
 	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeChargePointPriority/1/-4", nil)
+	req := httptest.NewRequest("PUT", "/changeChargePointPriority", body)
 	rr := httptest.NewRecorder()
 
 	Makehttphandlers().ServeHTTP(rr, req)
-
-	var response map[string]string
-	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal JSON response: %v", err)
-	}
-
 	assert.Equal(t, 500, rr.Result().StatusCode)
-	assert.Equal(t, "Priority should be between 0 and 2", response["message"])
 }
 
-func TestChangeChargePointPriorityBadValuePriorityTooHigh(t *testing.T) {
+func TestChangeChargePointPriorityWrongTypeChargePointId(t *testing.T) {
+
+	var chargePointStatus = models.ChargePointStatus{
+		ChargePointId: 1,
+		Priority:      1,
+		GroupId:       1,
+	}
+
 	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
 		var chargePoints []models.ChargePointStatus
 		chargePoints = append(chargePoints,
@@ -228,10 +178,87 @@ func TestChangeChargePointPriorityBadValuePriorityTooHigh(t *testing.T) {
 		return chargePoints, nil
 	}
 
+	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
+		chargePointStatus.Priority = priority
+		return nil
+	}
+
+	body := strings.NewReader(`{"ChargePointId": "a", "Priority": 2}`)
+
 	container := c.ResetContainer()
 	mockStorage := new(DalMock)
 	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeChargePointPriority/1/3", nil)
+	req := httptest.NewRequest("PUT", "/changeChargePointPriority", body)
+	rr := httptest.NewRecorder()
+
+	Makehttphandlers().ServeHTTP(rr, req)
+	assert.Equal(t, 400, rr.Result().StatusCode)
+}
+
+func TestChangeChargePointPriorityWrongTypePriority(t *testing.T) {
+
+	var chargePointStatus = models.ChargePointStatus{
+		ChargePointId: 1,
+		Priority:      1,
+		GroupId:       1,
+	}
+
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
+		var chargePoints []models.ChargePointStatus
+		chargePoints = append(chargePoints,
+			models.ChargePointStatus{
+				ChargePointId: 1,
+				Priority:      1,
+				GroupId:       1,
+			},
+			models.ChargePointStatus{
+				ChargePointId: 2,
+				Priority:      1,
+				GroupId:       1,
+			},
+		)
+		return chargePoints, nil
+	}
+
+	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
+		chargePointStatus.Priority = priority
+		return nil
+	}
+
+	body := strings.NewReader(`{"ChargePointId": 1, "Priority": "a"}`)
+
+	container := c.ResetContainer()
+	mockStorage := new(DalMock)
+	container.SetStorage(mockStorage)
+	req := httptest.NewRequest("PUT", "/changeChargePointPriority", body)
+	rr := httptest.NewRecorder()
+
+	Makehttphandlers().ServeHTTP(rr, req)
+	assert.Equal(t, 400, rr.Result().StatusCode)
+}
+
+func TestChangeChargePointPriorityWrongValuePriority2(t *testing.T) {
+	var chargePointStatus = models.ChargePointStatus{
+		ChargePointId: 1,
+		Priority:      1,
+		GroupId:       1,
+	}
+
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
+		return nil, nil
+	}
+
+	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
+		chargePointStatus.Priority = priority
+		return nil
+	}
+
+	body := strings.NewReader(`{"ChargePointId": 1, "Priority": 3}`)
+
+	container := c.ResetContainer()
+	mockStorage := new(DalMock)
+	container.SetStorage(mockStorage)
+	req := httptest.NewRequest("PUT", "/changeChargePointPriority", body)
 	rr := httptest.NewRecorder()
 
 	Makehttphandlers().ServeHTTP(rr, req)
@@ -242,8 +269,127 @@ func TestChangeChargePointPriorityBadValuePriorityTooHigh(t *testing.T) {
 		t.Fatalf("Failed to unmarshal JSON response: %v", err)
 	}
 
-	assert.Equal(t, 500, rr.Result().StatusCode)
-	assert.Equal(t, "Priority should be between 0 and 2", response["message"])
+	assert.Equal(t, 400, rr.Result().StatusCode)
+	assert.Equal(t, "Priority should be 0", response["message"])
+}
+
+func TestChangeChargePointPriorityPriorityTooLow(t *testing.T) {
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
+		var chargePoints []models.ChargePointStatus
+		chargePoints = append(chargePoints,
+			models.ChargePointStatus{
+				ChargePointId: 1,
+				Priority:      1,
+				GroupId:       1,
+			},
+			models.ChargePointStatus{
+				ChargePointId: 2,
+				Priority:      1,
+				GroupId:       1,
+			},
+		)
+		return chargePoints, nil
+	}
+
+	body := strings.NewReader(`{"ChargePointId": 1, "Priority": -3}`)
+
+	container := c.ResetContainer()
+	mockStorage := new(DalMock)
+	container.SetStorage(mockStorage)
+	req := httptest.NewRequest("PUT", "/changeChargePointPriority", body)
+	rr := httptest.NewRecorder()
+
+	Makehttphandlers().ServeHTTP(rr, req)
+
+	var response map[string]string
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal JSON response: %v", err)
+	}
+
+	assert.Equal(t, 400, rr.Result().StatusCode)
+	assert.Equal(t, "Priority should not be negative", response["message"])
+}
+
+func TestChangeChargePointPriorityWrongValuePriority(t *testing.T) {
+	var chargePointStatus = models.ChargePointStatus{
+		ChargePointId: 1,
+		Priority:      1,
+		GroupId:       1,
+	}
+
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
+		var chargePoints []models.ChargePointStatus
+		chargePoints = append(chargePoints,
+			models.ChargePointStatus{
+				ChargePointId: 1,
+				Priority:      0,
+				GroupId:       1,
+			},
+		)
+		return chargePoints, nil
+	}
+
+	ChangeChargePointPriorityByIdDB = func(id int, priority int) error {
+		chargePointStatus.Priority = priority
+		return nil
+	}
+
+	body := strings.NewReader(`{"ChargePointId": 1, "Priority": 3}`)
+
+	container := c.ResetContainer()
+	mockStorage := new(DalMock)
+	container.SetStorage(mockStorage)
+	req := httptest.NewRequest("PUT", "/changeChargePointPriority", body)
+	rr := httptest.NewRecorder()
+
+	Makehttphandlers().ServeHTTP(rr, req)
+
+	var response map[string]string
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal JSON response: %v", err)
+	}
+
+	assert.Equal(t, 400, rr.Result().StatusCode)
+	assert.Equal(t, "Priority should be 0", response["message"])
+}
+
+func TestChangeChargePointPriorityPriorityTooHigh(t *testing.T) {
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) {
+		var chargePoints []models.ChargePointStatus
+		chargePoints = append(chargePoints,
+			models.ChargePointStatus{
+				ChargePointId: 1,
+				Priority:      1,
+				GroupId:       1,
+			},
+			models.ChargePointStatus{
+				ChargePointId: 2,
+				Priority:      1,
+				GroupId:       1,
+			},
+		)
+		return chargePoints, nil
+	}
+
+	body := strings.NewReader(`{"ChargePointId": 1, "Priority": 3}`)
+
+	container := c.ResetContainer()
+	mockStorage := new(DalMock)
+	container.SetStorage(mockStorage)
+	req := httptest.NewRequest("PUT", "/changeChargePointPriority", body)
+	rr := httptest.NewRecorder()
+
+	Makehttphandlers().ServeHTTP(rr, req)
+	var response map[string]string
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal JSON response: %v", err)
+	}
+
+	assert.Equal(t, 400, rr.Result().StatusCode)
+	assert.Equal(t, "Priority should be between 0 and 1", response["message"])
 }
 
 func TestChangeConnectorStatus(t *testing.T) {
@@ -253,14 +399,19 @@ func TestChangeConnectorStatus(t *testing.T) {
 		ChargePointId: 1,
 	}
 
-	ChangeConnectorStatusByIdDB = func(id int, status string) {
+	ChangeConnectorStatusByIdDB = func(id int, status string) error {
 		connectorStatus.Status = status
+		return nil
 	}
+
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) { return nil, nil }
+
+	body := strings.NewReader(`{"Id": 1, "Status": "Available"}`)
 
 	container := c.ResetContainer()
 	mockStorage := new(DalMock)
 	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeConnectorStatus/1/Available", nil)
+	req := httptest.NewRequest("PUT", "/changeConnectorStatus", body)
 	rr := httptest.NewRecorder()
 
 	Makehttphandlers().ServeHTTP(rr, req)
@@ -272,49 +423,73 @@ func TestChangeConnectorStatus(t *testing.T) {
 		}, connectorStatus)
 }
 
-func TestChangeConnectorStatusBadValueConnectorId(t *testing.T) {
-	var connectorStatus = models.ChargePointConnector{
-		Id:            1,
-		Status:        "Charging",
-		ChargePointId: 1,
+func TestChangeConnectorStatusWrongValueConnectorId(t *testing.T) {
+	ChangeConnectorStatusByIdDB = func(id int, status string) error {
+		return errors.New("")
 	}
 
-	ChangeConnectorStatusByIdDB = func(id int, status string) {
-		connectorStatus.Status = status
-	}
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) { return nil, nil }
+
+	body := strings.NewReader(`{"Id": 4, "Status": "Available"}`)
 
 	container := c.ResetContainer()
 	mockStorage := new(DalMock)
 	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeConnectorStatus/a/Available", nil)
+	req := httptest.NewRequest("PUT", "/changeConnectorStatus", body)
 	rr := httptest.NewRecorder()
 
 	Makehttphandlers().ServeHTTP(rr, req)
-	var response map[string]string
-	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal JSON response: %v", err)
-	}
 
 	assert.Equal(t, 500, rr.Result().StatusCode)
-	assert.Equal(t, "ConnectorId is not a number", response["message"])
 }
 
-func TestChangeConnectorStatusBadValueStatusWrong(t *testing.T) {
+func TestChangeConnectorStatusWrongTypeConnectorId(t *testing.T) {
 	var connectorStatus = models.ChargePointConnector{
 		Id:            1,
 		Status:        "Charging",
 		ChargePointId: 1,
 	}
 
-	ChangeConnectorStatusByIdDB = func(id int, status string) {
+	ChangeConnectorStatusByIdDB = func(id int, status string) error {
 		connectorStatus.Status = status
+		return nil
 	}
+
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) { return nil, nil }
+
+	body := strings.NewReader(`{"Id": a, "Status": "Available"}`)
 
 	container := c.ResetContainer()
 	mockStorage := new(DalMock)
 	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeConnectorStatus/1/asd", nil)
+	req := httptest.NewRequest("PUT", "/changeConnectorStatus", body)
+	rr := httptest.NewRecorder()
+
+	Makehttphandlers().ServeHTTP(rr, req)
+
+	assert.Equal(t, 400, rr.Result().StatusCode)
+}
+
+func TestChangeConnectorStatusWrongValueStatus(t *testing.T) {
+	var connectorStatus = models.ChargePointConnector{
+		Id:            1,
+		Status:        "Charging",
+		ChargePointId: 1,
+	}
+
+	ChangeConnectorStatusByIdDB = func(id int, status string) error {
+		connectorStatus.Status = status
+		return nil
+	}
+
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) { return nil, nil }
+
+	body := strings.NewReader(`{"Id": 1, "Status": "asd"}`)
+
+	container := c.ResetContainer()
+	mockStorage := new(DalMock)
+	container.SetStorage(mockStorage)
+	req := httptest.NewRequest("PUT", "/changeConnectorStatus", body)
 	rr := httptest.NewRecorder()
 
 	Makehttphandlers().ServeHTTP(rr, req)
@@ -324,7 +499,7 @@ func TestChangeConnectorStatusBadValueStatusWrong(t *testing.T) {
 		t.Fatalf("Failed to unmarshal JSON response: %v", err)
 	}
 
-	assert.Equal(t, 500, rr.Result().StatusCode)
+	assert.Equal(t, 400, rr.Result().StatusCode)
 	assert.Equal(t, "Wrong status value", response["message"])
 }
 
@@ -334,100 +509,126 @@ func TestChangeMaxCurrentGroup(t *testing.T) {
 		MaxCurrent: 300.0,
 	}
 
-	ChangeGroupMaxCurrentByIdDB = func(id int, maxCurrent float64) {
+	ChangeGroupMaxCurrentByIdDB = func(id int, maxCurrent float64) error {
 		groupMaxCurrent.MaxCurrent = maxCurrent
+		return nil
 	}
+
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) { return nil, nil }
+
+	body := strings.NewReader(`{"Id": 1, "MaxCurrent": 400.0}`)
 
 	container := c.ResetContainer()
 	mockStorage := new(DalMock)
 	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeMaxCurrentGroup/1/500.0", nil)
+	req := httptest.NewRequest("PUT", "/changeMaxCurrentGroup", body)
 	rr := httptest.NewRecorder()
 
 	Makehttphandlers().ServeHTTP(rr, req)
 	assert.Equal(t,
 		models.Group{
 			Id:         1,
-			MaxCurrent: 500.0,
+			MaxCurrent: 400.0,
 		}, groupMaxCurrent)
 }
 
-func TestChangeMaxCurrentGroupBadValueGroupId(t *testing.T) {
-	var groupMaxCurrent = models.Group{
-		Id:         1,
-		MaxCurrent: 300.0,
+func TestChangeMaxCurrentGroupWrongGroupId(t *testing.T) {
+	ChangeGroupMaxCurrentByIdDB = func(id int, maxCurrent float64) error {
+		return errors.New("")
 	}
 
-	ChangeGroupMaxCurrentByIdDB = func(id int, maxCurrent float64) {
-		groupMaxCurrent.MaxCurrent = maxCurrent
-	}
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) { return nil, nil }
+
+	body := strings.NewReader(`{"Id": 1, "MaxCurrent": 400.0}`)
 
 	container := c.ResetContainer()
 	mockStorage := new(DalMock)
 	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeMaxCurrentGroup/a/500.0", nil)
+	req := httptest.NewRequest("PUT", "/changeMaxCurrentGroup", body)
 	rr := httptest.NewRecorder()
 
 	Makehttphandlers().ServeHTTP(rr, req)
-	var response map[string]string
-	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal JSON response: %v", err)
-	}
-
 	assert.Equal(t, 500, rr.Result().StatusCode)
-	assert.Equal(t, "GroupId is not a number", response["message"])
 }
 
-func TestChangeMaxCurrentGroupBadValueMaxCurrent(t *testing.T) {
+func TestChangeMaxCurrentGroupWrongTypeGroupId(t *testing.T) {
 	var groupMaxCurrent = models.Group{
 		Id:         1,
 		MaxCurrent: 300.0,
 	}
 
-	ChangeGroupMaxCurrentByIdDB = func(id int, maxCurrent float64) {
+	ChangeGroupMaxCurrentByIdDB = func(id int, maxCurrent float64) error {
 		groupMaxCurrent.MaxCurrent = maxCurrent
+		return nil
 	}
+
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) { return nil, nil }
+
+	body := strings.NewReader(`{"Id": a, "MaxCurrent": 400.0}`)
 
 	container := c.ResetContainer()
 	mockStorage := new(DalMock)
 	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeMaxCurrentGroup/1/a", nil)
+	req := httptest.NewRequest("PUT", "/changeMaxCurrentGroup", body)
 	rr := httptest.NewRecorder()
 
 	Makehttphandlers().ServeHTTP(rr, req)
-	var response map[string]string
-	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal JSON response: %v", err)
-	}
-
-	assert.Equal(t, 500, rr.Result().StatusCode)
-	assert.Equal(t, "MaxCurrent is not a number", response["message"])
+	assert.Equal(t, 400, rr.Result().StatusCode)
 }
 
-func TestChangeMaxCurrentGroupBadValueLessThanZero(t *testing.T) {
+func TestChangeMaxCurrentGroupWrongTypeMaxCurrent(t *testing.T) {
 	var groupMaxCurrent = models.Group{
 		Id:         1,
 		MaxCurrent: 300.0,
 	}
 
-	ChangeGroupMaxCurrentByIdDB = func(id int, maxCurrent float64) {
+	ChangeGroupMaxCurrentByIdDB = func(id int, maxCurrent float64) error {
 		groupMaxCurrent.MaxCurrent = maxCurrent
+		return nil
 	}
+
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) { return nil, nil }
+
+	body := strings.NewReader(`{"Id": 1, "MaxCurrent": a}`)
 
 	container := c.ResetContainer()
 	mockStorage := new(DalMock)
 	container.SetStorage(mockStorage)
-	req := httptest.NewRequest("PUT", "/changeMaxCurrentGroup/1/-1", nil)
+	req := httptest.NewRequest("PUT", "/changeMaxCurrentGroup", body)
+	rr := httptest.NewRecorder()
+
+	Makehttphandlers().ServeHTTP(rr, req)
+	assert.Equal(t, 400, rr.Result().StatusCode)
+}
+
+func TestChangeMaxCurrentGroupLessThanZero(t *testing.T) {
+	var groupMaxCurrent = models.Group{
+		Id:         1,
+		MaxCurrent: 300.0,
+	}
+
+	ChangeGroupMaxCurrentByIdDB = func(id int, maxCurrent float64) error {
+		groupMaxCurrent.MaxCurrent = maxCurrent
+		return nil
+	}
+
+	GetChargePointStatusDB = func() ([]models.ChargePointStatus, error) { return nil, nil }
+
+	body := strings.NewReader(`{"Id": 1, "MaxCurrent": -1}`)
+
+	container := c.ResetContainer()
+	mockStorage := new(DalMock)
+	container.SetStorage(mockStorage)
+	req := httptest.NewRequest("PUT", "/changeMaxCurrentGroup", body)
 	rr := httptest.NewRecorder()
 	Makehttphandlers().ServeHTTP(rr, req)
+
 	var response map[string]string
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal JSON response: %v", err)
 	}
 
-	assert.Equal(t, 500, rr.Result().StatusCode)
+	assert.Equal(t, 400, rr.Result().StatusCode)
 	assert.Equal(t, "MaxCurrent must be greater or equal to 0", response["message"])
 }

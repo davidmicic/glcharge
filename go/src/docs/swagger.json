@@ -13,26 +13,18 @@
             "post": {
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Priority",
-                        "name": "Priority",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "GroupId",
-                        "name": "GroupId",
-                        "in": "path",
-                        "required": true
+                        "description": "ChargePointReq",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ChargePointReq"
+                        }
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -41,26 +33,18 @@
             "post": {
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "ChargePointId",
-                        "name": "ChargePointId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Status",
-                        "name": "Status",
-                        "in": "path",
-                        "required": true
+                        "description": "ChargePointConnectorReq",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ChargePointConnectorReq"
+                        }
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -69,121 +53,204 @@
             "post": {
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "maxCurrent",
-                        "name": "maxCurrent",
-                        "in": "path",
-                        "required": true
+                        "description": "GroupReq",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.GroupReq"
+                        }
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content",
-                        "schema": {
-                            "type": "string"
-                        }
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
         },
-        "/changeChargePointPriority/:chargePointId/:priority": {
+        "/changeChargePointPriority": {
             "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "priority",
-                        "name": "priority",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "chargePointId",
-                        "name": "chargePointId",
-                        "in": "path",
-                        "required": true
+                        "description": "ChangeChargePointPriorityReq",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ChangeChargePointPriorityReq"
+                        }
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.HandlerRes"
                         }
                     },
+                    "400": {
+                        "description": "Bad Request"
+                    },
                     "500": {
-                        "description": "Priority is not a number",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Internal Server Error"
                     }
                 }
             }
         },
-        "/changeConnectorStatus/:connectorId/:status": {
+        "/changeConnectorStatus": {
             "put": {
+                "consumes": [
+                    "application/json"
+                ],
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "status",
-                        "name": "status",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "connectorId",
-                        "name": "connectorId",
-                        "in": "path",
-                        "required": true
+                        "description": "ChangeConnectorStatusReq",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ChangeConnectorStatusReq"
+                        }
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "Wrong status value",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.HandlerRes"
                         }
                     },
+                    "400": {
+                        "description": "Bad Request"
+                    },
                     "500": {
-                        "description": "Missing status value",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Internal Server Error"
                     }
                 }
             }
         },
-        "/changeMaxCurrentGroup/:groupId/:maxCurrent": {
+        "/changeMaxCurrentGroup": {
             "put": {
+                "consumes": [
+                    "application/json"
+                ],
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "maxCurrent",
-                        "name": "maxCurrent",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "groupId",
-                        "name": "groupId",
-                        "in": "path",
-                        "required": true
+                        "description": "ChangeMaxCurrentGroupReq",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.ChangeMaxCurrentGroupReq"
+                        }
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content",
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.HandlerRes"
                         }
                     },
+                    "400": {
+                        "description": "Bad Request"
+                    },
                     "500": {
-                        "description": "MaxCurrent must be greater or equal to 0",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handlers.ChangeChargePointPriorityReq": {
+            "type": "object",
+            "properties": {
+                "ChargePointId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "Priority": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "handlers.ChangeConnectorStatusReq": {
+            "type": "object",
+            "properties": {
+                "Id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "Status": {
+                    "type": "string",
+                    "example": "Available"
+                }
+            }
+        },
+        "handlers.ChangeMaxCurrentGroupReq": {
+            "type": "object",
+            "properties": {
+                "Id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "MaxCurrent": {
+                    "type": "number",
+                    "example": 100
+                }
+            }
+        },
+        "handlers.ChargePointConnectorReq": {
+            "type": "object",
+            "properties": {
+                "ChargePointId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "Status": {
+                    "type": "string",
+                    "example": "Available"
+                }
+            }
+        },
+        "handlers.ChargePointReq": {
+            "type": "object",
+            "properties": {
+                "GroupId": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "Priority": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "handlers.GroupReq": {
+            "type": "object",
+            "properties": {
+                "MaxCurrent": {
+                    "type": "number",
+                    "example": 100
+                }
+            }
+        },
+        "handlers.HandlerRes": {
+            "type": "object",
+            "properties": {
+                "resultMap": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "number"
                     }
                 }
             }
